@@ -537,5 +537,12 @@ def api_v0_branches():
     )
 
 
+@app.route("/api/v0/ping", methods=["GET"])
+@cross_origin()
+def api_v0_ping():
+    """Ping"""
+    return jsonify({"status": "ok"})
+
+
 if __name__ == "__main__":
     app.run(debug=True)
