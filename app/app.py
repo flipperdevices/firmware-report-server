@@ -496,9 +496,9 @@ def api_v0_branches():
     pull_request_user_branches = {}
 
     # example: 0.69.0
-    release_pattern = re.compile("^\d+\.\d+\.\d+$")
+    release_pattern = re.compile(r"^\d+\.\d+\.\d+$")
     # example: 0.69.0-rc
-    release_candidate_pattern = re.compile("^\d+\.\d+\.\d+-rc$")
+    release_candidate_pattern = re.compile(r"^\d+\.\d+\.\d+-rc$")
 
     for header in headers:
         name = header[0]
