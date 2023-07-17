@@ -4,18 +4,31 @@ import time
 from functools import wraps
 from typing import Dict, List, TypedDict
 
+from marshmallow import Schema, fields
+from apiflask import APIFlask
+from flask import jsonify
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import desc, func
 
+from app.services.map_parser import parse_sections
+from app.services.map_db_writer import insertHeader, insertData
+
+
 app = Flask(__name__)
+
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URI")
 
 db = SQLAlchemy()
 db.init_app(app)
+
+
+class MapFileRequestSchema(Schema):
+    map_file = fields.Raw(type='file', required=True)
 
 
 def time_it(func):
@@ -535,6 +548,23 @@ def api_v0_branches():
             "pull_request_user_branches": pull_request_user_branches,
         }
     )
+
+
+@app.route("/api/v0/map-file/analyse", methods=["POST"])
+@cross_origin()
+def api_v0_analyse_map_file():
+    """Analyse map file"""
+    if (map_file := request.files.get('map_file')) is None:
+        return {"status": "error", "details": "Map file is required!"}, 400
+
+    parsed_sections = parse_sections(map_file)
+    print(parsed_sections)
+
+    session = db.session
+    # header_id = insertHeader(parseEnv(), dbCurs, dbConn)
+    # insertData(parseFile(reportFile, header_id), dbCurs, dbConn)
+
+    return jsonify({"status": "Map file has been inserted!"})
 
 
 @app.route("/api/v0/ping", methods=["GET"])
