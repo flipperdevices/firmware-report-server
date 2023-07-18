@@ -5,7 +5,7 @@
 
 from datetime import datetime
 import argparse
-import mariadb
+# import mariadb
 import sys
 import os
 
@@ -124,15 +124,20 @@ def insertData(data, cur, conn):
 
 
 def main():
+    # python tests/source/map_mariadb_insert.py root root localhost 3306 amap_reports tests/assets/firmware.elf.map.all
+
     args = parseArgs()
-    dbConn = mariadbConnect(args)
+    # dbConn = mariadbConnect(args)
     reportFile = open(args.report_file)
-    dbCurs = dbConn.cursor()
-    createTables(dbCurs, dbConn)
-    headerID = insertHeader(parseEnv(), dbCurs, dbConn)
-    insertData(parseFile(reportFile, headerID), dbCurs, dbConn)
-    reportFile.close()
-    dbCurs.close()
+    # dbCurs = dbConn.cursor()
+    # createTables(dbCurs, dbConn)
+    # headerID = insertHeader(parseEnv(), dbCurs, dbConn)
+    se = parseFile(reportFile, "headerID")
+    print(se)
+
+    # insertData(parseFile(reportFile, headerID), dbCurs, dbConn)
+    # reportFile.close()
+    # dbCurs.close()
 
 
 if __name__ == "__main__":

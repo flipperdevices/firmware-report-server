@@ -30,7 +30,8 @@ import sys
 import re
 import os
 from typing import TextIO
-from cxxfilt import demangle
+# from cxxfilt import demangle
+from cpp_demangle import demangle
 
 
 class Objectfile:
@@ -86,7 +87,7 @@ def parse_sections(file_name: str) -> list:
 
         while True:
             line = file.readline()
-            print(line)
+            # print(line)
             if not line:
                 break
             if line.strip() == "Memory Configuration":
@@ -106,7 +107,6 @@ def parse_sections(file_name: str) -> list:
         )
         s = file.read()
         pos = 0
-
         while True:
             m = sectionre.match(s, pos)
             if not m:
@@ -268,8 +268,10 @@ if __name__ == "__main__":
     output_file = sys.argv[2]
 
     parsed_sections = parse_sections(input_file)
+    # print(parsed_sections)
 
     if parsed_sections is None:
         raise Exception(f"Memory configuration is not {input_file}")
 
-    # save_parsed_data(parsed_sections, output_file)
+    save_parsed_data(parsed_sections, output_file)
+    # python tests/source/map_parser.py tests/assets/firmware.elf.map tests/assets/firmware.elf.map.all2

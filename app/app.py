@@ -13,7 +13,7 @@ from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import desc, func
 
-from app.services.map_parser import parse_sections
+from app.services.map_parser import parse_sections, save_parsed_data
 from app.services.map_db_writer import insertHeader, insertData
 
 
@@ -133,14 +133,14 @@ class Header(db.Model):  # type: ignore
     datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
     commit = db.Column(db.String(40), nullable=False)
     commit_msg = db.Column(db.Text, nullable=False)
-    branch_name = db.Column(db.String, unique=False, nullable=False)
+    branch_name = db.Column(db.String(32), unique=False, nullable=False)
     bss_size = db.Column(db.Integer, nullable=False)
     text_size = db.Column(db.Integer, nullable=False)
     rodata_size = db.Column(db.Integer, nullable=False)
     data_size = db.Column(db.Integer, nullable=False)
     free_flash_size = db.Column(db.Integer, nullable=False)
     pullrequest_id = db.Column(db.Integer, nullable=True)
-    pullrequest_name = db.Column(db.String, unique=False, nullable=True)
+    pullrequest_name = db.Column(db.String(128), unique=False, nullable=True)
 
     @property
     def serialize(self):
@@ -384,6 +384,8 @@ class Files:
     def get_files(self):
         return self.files
 
+with app.app_context():
+    db.create_all()
 
 @app.route("/api/v0/commit_diff_data", methods=["GET"])
 @cross_origin()
@@ -558,9 +560,69 @@ def api_v0_analyse_map_file():
         return {"status": "error", "details": "Map file is required!"}, 400
 
     parsed_sections = parse_sections(map_file)
-    print(parsed_sections)
+    # print(parsed_sections)
+    save_parsed_data(parsed_sections, 'firmware.elf.map.all')
+
+    from sqlalchemy import insert
 
     session = db.session
+
+    # commit_hash = os.getenv("COMMIT_HASH")
+    # commit_msg = os.getenv("COMMIT_MSG")
+    # branch_name = os.getenv("BRANCH_NAME")
+    # bss_size = os.getenv("BSS_SIZE")
+    # text_size = os.getenv("TEXT_SIZE")
+    # rodata_size = os.getenv("RODATA_SIZE")
+    # data_size = os.getenv("DATA_SIZE")
+    # free_flash_size = os.getenv("FREE_FLASH_SIZE")
+    # pull_id = os.getenv("PULL_ID")
+    # pull_name = os.getenv("PULL_NAME")
+
+    # from datetime import datetime
+
+    # header_new = Header(
+    #     datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    #     commit=commit_hash,
+    #     commit_msg=commit_msg,
+    #     branch_name=branch_name,
+    #     bss_size=bss_size,
+    #     text_size=text_size,
+    #     rodata_size=rodata_size,
+    #     data_size=data_size,
+    #     free_flash_size=free_flash_size,
+    #     pullrequest_id=pull_id,
+    #     pullrequest_name=pull_name
+    # )
+    # session.add(header_new)
+
+    header_new = Data(
+        section=section,
+        address=address,
+        size=size,
+        name=name,
+        lib=lib,
+        obj_name=obj_name,
+    )
+    session.add(header_new)
+    session.commit()
+
+    # header_new = Header(
+    #     datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    #     commit=commit_hash,
+    #     commit_msg=commit_msg,
+    #     branch_name=branch_name,
+    #     bss_size=bss_size,
+    #     text_size=text_size,
+    #     rodata_size=rodata_size,
+    #     data_size=data_size,
+    #     free_flash_size=free_flash_size,
+    #     pullrequest_id=pull_id,
+    #     pullrequest_name=pull_name
+    # )
+    # session.add(header_new)
+    # session.commit()
+    print(stmt)
+
     # header_id = insertHeader(parseEnv(), dbCurs, dbConn)
     # insertData(parseFile(reportFile, header_id), dbCurs, dbConn)
 

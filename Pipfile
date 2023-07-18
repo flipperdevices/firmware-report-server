@@ -10,8 +10,14 @@ mysqlclient = "*"
 flask-cors = "*"
 gunicorn = "*"
 marshmallow = "*"
-#apiflask = "*"
-cxxfilt = "*"
+cxxfilt = "==0.2.1"
+#from = "*"
+#itanium-demangler = "*"
+#import = "*"
+#parse = "*"
+#as = "*"
+#demangle = "*"
+cpp-demangle = "*"
 
 [dev-packages]
 

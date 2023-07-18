@@ -30,11 +30,11 @@ import sys
 import re
 import os
 from typing import TextIO
-from cxxfilt import demangle
+# from cxxfilt import demangle
+from cpp_demangle import demangle
 
 
 class ObjectFile:
-
     def __init__(self, section: str, offset: int, size: int, comment: str):
         self.section = section.strip()
         self.offset = offset
@@ -94,7 +94,9 @@ def parse_sections(file: bytes) -> list:
             break
 
     if not found:
-        raise Exception(f"Memory configuration is not found in the {file_name.filename}")
+        raise Exception(
+            f"Memory configuration is not found in the {file_name.filename}"
+        )
 
     # long section names result in a linebreak afterwards
     sectionre = re.compile(
@@ -153,7 +155,7 @@ def parse_sections(file: bytes) -> list:
             else:
                 sections.append(of)
 
-        return sections
+    return sections
 
 
 def get_subsection_name(section_name: str, subsection: ObjectFile) -> str:
@@ -168,98 +170,99 @@ def get_subsection_name(section_name: str, subsection: ObjectFile) -> str:
     )
 
 
-# def write_subsection(
-#     section_name: str,
-#     subsection_name: str,
-#     address: str,
-#     size: int,
-#     demangled_name: str,
-#     module_name: str,
-#     file_name: str,
-#     mangled_name: str,
-#     write_file_object: TextIO,
-# ) -> None:
-#     write_file_object.write(
-#         f"{section_name}\t"
-#         f"{subsection_name}\t"
-#         f"{address}\t"
-#         f"{size}\t"
-#         f"{demangled_name}\t"
-#         f"{module_name}\t"
-#         f"{file_name}\t"
-#         f"{mangled_name}\n"
-#     )
+def write_subsection(
+    section_name: str,
+    subsection_name: str,
+    address: str,
+    size: int,
+    demangled_name: str,
+    module_name: str,
+    file_name: str,
+    mangled_name: str,
+    write_file_object: TextIO,
+) -> None:
+    write_file_object.write(
+        f"{section_name}\t"
+        f"{subsection_name}\t"
+        f"{address}\t"
+        f"{size}\t"
+        f"{demangled_name}\t"
+        f"{module_name}\t"
+        f"{file_name}\t"
+        f"{mangled_name}\n"
+    )
 
 
-# def save_subsection(
-#     section_name: str, subsection: ObjectFile, write_file_object: TextIO
-# ) -> None:
-#     subsection_name = get_subsection_name(section_name, subsection)
-#     module_name = subsection.path[0]
-#     file_name = subsection.path[1]
-#
-#     if not file_name:
-#         file_name, module_name = module_name, ""
-#
-#     if not subsection.children:
-#         address = f"{subsection.offset:x}"
-#         size = subsection.size
-#         mangled_name = (
-#             ""
-#             if subsection.section == section_name
-#             else subsection.section.split(".")[-1]
-#         )
-#         demangled_name = demangle(mangled_name) if mangled_name else mangled_name
-#
-#         write_subsection(
-#             section_name=section_name,
-#             subsection_name=subsection_name,
-#             address=address,
-#             size=size,
-#             demangled_name=demangled_name,
-#             module_name=module_name,
-#             file_name=file_name,
-#             mangled_name=mangled_name,
-#             write_file_object=write_file_object,
-#         )
-#         return
-#
-#     for subsection_child in subsection.children:
-#         address = f"{subsection_child[0]:x}"
-#         size = subsection_child[1]
-#         mangled_name = subsection_child[2]
-#         demangled_name = demangle(mangled_name)
-#
-#         write_subsection(
-#             section_name=section_name,
-#             subsection_name=subsection_name,
-#             address=address,
-#             size=size,
-#             demangled_name=demangled_name,
-#             module_name=module_name,
-#             file_name=file_name,
-#             mangled_name=mangled_name,
-#             write_file_object=write_file_object,
-#         )
+def save_subsection(
+    section_name: str, subsection: ObjectFile, write_file_object: TextIO
+) -> None:
+    subsection_name = get_subsection_name(section_name, subsection)
+    module_name = subsection.path[0]
+    file_name = subsection.path[1]
+
+    if not file_name:
+        file_name, module_name = module_name, ""
+
+    if not subsection.children:
+        address = f"{subsection.offset:x}"
+        size = subsection.size
+        mangled_name = (
+            ""
+            if subsection.section == section_name
+            else subsection.section.split(".")[-1]
+        )
+        demangled_name = demangle(mangled_name) if mangled_name else mangled_name
+
+        write_subsection(
+            section_name=section_name,
+            subsection_name=subsection_name,
+            address=address,
+            size=size,
+            demangled_name=demangled_name,
+            module_name=module_name,
+            file_name=file_name,
+            mangled_name=mangled_name,
+            write_file_object=write_file_object,
+        )
+        return
+
+    for subsection_child in subsection.children:
+        address = f"{subsection_child[0]:x}"
+        size = subsection_child[1]
+        mangled_name = subsection_child[2]
+        print(mangled_name)
+        demangled_name = demangle(mangled_name)
+
+        write_subsection(
+            section_name=section_name,
+            subsection_name=subsection_name,
+            address=address,
+            size=size,
+            demangled_name=demangled_name,
+            module_name=module_name,
+            file_name=file_name,
+            mangled_name=mangled_name,
+            write_file_object=write_file_object,
+        )
 
 
-# def save_section(section: ObjectFile, write_file_object: TextIO) -> None:
-#     section_name = section.section
-#     for subsection in section.children:
-#         save_subsection(
-#             section_name=section_name,
-#             subsection=subsection,
-#             write_file_object=write_file_object,
-#         )
-#
-#
-# def save_parsed_data(parsed_data: list[ObjectFile], output_file_name: str) -> None:
-#     with open(output_file_name, "w") as write_file_object:
-#         for section in parsed_data:
-#             if section.children:
-#                 save_section(section=section, write_file_object=write_file_object)
+def save_section(section: ObjectFile, write_file_object: TextIO) -> None:
+    section_name = section.section
+    for subsection in section.children:
+        save_subsection(
+            section_name=section_name,
+            subsection=subsection,
+            write_file_object=write_file_object,
+        )
 
 
+def save_parsed_data(parsed_data: list[ObjectFile], output_file_name: str) -> None:
+    with open(output_file_name, "w") as write_file_object:
+        for section in parsed_data:
+            if section.children:
+                save_section(section=section, write_file_object=write_file_object)
+
+#
 # if __name__ == "__main__":
 #     if len(sys.argv) < 3:
 #         raise Exception(f"Usage: {sys.argv[0]} <input file> <output file>")
@@ -268,6 +271,8 @@ def get_subsection_name(section_name: str, subsection: ObjectFile) -> str:
 #     output_file = sys.argv[2]
 #
 #     parsed_sections = parse_sections(input_file)
+#
+#     print(parsed_sections)
 #
 #     if parsed_sections is None:
 #         raise Exception(f"Memory configuration is not {input_file}")

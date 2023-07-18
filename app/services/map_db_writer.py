@@ -5,6 +5,7 @@
 
 from datetime import datetime
 import argparse
+
 # import mariadb
 import sys
 import os
@@ -53,38 +54,68 @@ import os
 #     return outArr
 
 
-def createTables(cur, conn):
-    headerTable = "CREATE TABLE IF NOT EXISTS `header` ( \
-            `id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
-            `datetime` datetime NOT NULL, \
-            `commit` varchar(40) NOT NULL, \
-            `commit_msg` text NOT NULL, \
-            `branch_name` text NOT NULL, \
-            `bss_size` int(10) unsigned NOT NULL, \
-            `text_size` int(10) unsigned NOT NULL, \
-            `rodata_size` int(10) unsigned NOT NULL, \
-            `data_size` int(10) unsigned NOT NULL, \
-            `free_flash_size` int(10) unsigned NOT NULL, \
-            `pullrequest_id` int(10) unsigned DEFAULT NULL, \
-            `pullrequest_name` text DEFAULT NULL, \
-            PRIMARY KEY (`id`), \
-            KEY `header_id_index` (`id`) )"
-    dataTable = "CREATE TABLE IF NOT EXISTS `data` ( \
-            `header_id` int(10) unsigned NOT NULL, \
-            `id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
-            `section` text NOT NULL, \
-            `address` text NOT NULL, \
-            `size` int(10) unsigned NOT NULL, \
-            `name` text NOT NULL, \
-            `lib` text NOT NULL, \
-            `obj_name` text NOT NULL, \
-            PRIMARY KEY (`id`), \
-            KEY `data_id_index` (`id`), \
-            KEY `data_header_id_index` (`header_id`), \
-            CONSTRAINT `data_header_id_foreign` FOREIGN KEY (`header_id`) REFERENCES `header` (`id`) )"
-    cur.execute(headerTable)
-    cur.execute(dataTable)
-    conn.commit()
+# def createTables(cur, conn):
+#     headerTable = "CREATE TABLE IF NOT EXISTS `header` ( \
+#             `id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
+#             `datetime` datetime NOT NULL, \
+#             `commit` varchar(40) NOT NULL, \
+#             `commit_msg` text NOT NULL, \
+#             `branch_name` text NOT NULL, \
+#             `bss_size` int(10) unsigned NOT NULL, \
+#             `text_size` int(10) unsigned NOT NULL, \
+#             `rodata_size` int(10) unsigned NOT NULL, \
+#             `data_size` int(10) unsigned NOT NULL, \
+#             `free_flash_size` int(10) unsigned NOT NULL, \
+#             `pullrequest_id` int(10) unsigned DEFAULT NULL, \
+#             `pullrequest_name` text DEFAULT NULL, \
+#             PRIMARY KEY (`id`), \
+#             KEY `header_id_index` (`id`) )"
+#     dataTable = "CREATE TABLE IF NOT EXISTS `data` ( \
+#             `header_id` int(10) unsigned NOT NULL, \
+#             `id` int(10) unsigned NOT NULL AUTO_INCREMENT, \
+#             `section` text NOT NULL, \
+#             `address` text NOT NULL, \
+#             `size` int(10) unsigned NOT NULL, \
+#             `name` text NOT NULL, \
+#             `lib` text NOT NULL, \
+#             `obj_name` text NOT NULL, \
+#             PRIMARY KEY (`id`), \
+#             KEY `data_id_index` (`id`), \
+#             KEY `data_header_id_index` (`header_id`), \
+#             CONSTRAINT `data_header_id_foreign` FOREIGN KEY (`header_id`) REFERENCES `header` (`id`) )"
+#     cur.execute(headerTable)
+#     cur.execute(dataTable)
+#     conn.commit()
+
+
+def insert_header(data, cur, conn):
+    header_new = Header(
+        datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        commit=commit_hash,
+        commit_msg=commit_msg,
+        branch_name=branch_name,
+        bss_size=bss_size,
+        text_size=text_size,
+        rodata_size=rodata_size,
+        data_size=data_size,
+        free_flash_size=free_flash_size,
+        pullrequest_id=pull_id,
+        pullrequest_name=pull_name
+    )
+    session.add(header_new)
+    session.commit()
+    # stmt = table.insert().returning(
+    #     (table.c.first_name + " " + table.c.last_name).label("fullname")
+    # )
+    # print(stmt)
+
+    # query = "INSERT INTO `header` ( \
+    #         datetime, commit, commit_msg, branch_name, bss_size, text_size, \
+    #         rodata_size, data_size, free_flash_size, pullrequest_id, pullrequest_name) \
+    #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    # cur.execute(query, data)
+    # conn.commit()
+    return header_new
 
 
 def insertHeader(data, cur, conn):
