@@ -11,6 +11,7 @@ flask-cors = "*"
 gunicorn = "*"
 marshmallow = "*"
 cxxfilt = "==0.2.1"
+pytest = "*"
 
 [dev-packages]
 
