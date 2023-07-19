@@ -11,13 +11,6 @@ flask-cors = "*"
 gunicorn = "*"
 marshmallow = "*"
 cxxfilt = "==0.2.1"
-#from = "*"
-#itanium-demangler = "*"
-#import = "*"
-#parse = "*"
-#as = "*"
-#demangle = "*"
-cpp-demangle = "*"
 
 [dev-packages]
 

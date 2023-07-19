@@ -1,12 +1,13 @@
+import json
 import os
 import re
 import time
 from functools import wraps
+from datetime import datetime
+from contextlib import contextmanager
 from typing import Dict, List, TypedDict
 
-from marshmallow import Schema, fields
-from apiflask import APIFlask
-from flask import jsonify
+from marshmallow import Schema, fields, ValidationError
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
@@ -14,7 +15,6 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import desc, func
 
 from app.services.map_parser import parse_sections, save_parsed_data
-from app.services.map_db_writer import insertHeader, insertData
 
 
 app = Flask(__name__)
@@ -27,8 +27,30 @@ db = SQLAlchemy()
 db.init_app(app)
 
 
+@contextmanager
+def session_scope():
+    session = db.session
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 class MapFileRequestSchema(Schema):
-    map_file = fields.Raw(type='file', required=True)
+    commit_hash = fields.String(required=True)
+    commit_msg = fields.String(required=True)
+    branch_name = fields.String(required=True)
+    bss_size = fields.Integer(required=True)
+    text_size = fields.Integer(required=True)
+    rodata_size = fields.Integer(required=True)
+    data_size = fields.Integer(required=True)
+    free_flash_size = fields.Integer(required=True)
+    pull_id = fields.Integer(required=True)
+    pull_name = fields.String(required=True)
 
 
 def time_it(func):
@@ -556,77 +578,47 @@ def api_v0_branches():
 @cross_origin()
 def api_v0_analyse_map_file():
     """Analyse map file"""
+    try:
+        result = MapFileRequestSchema().load(request.form)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+
     if (map_file := request.files.get('map_file')) is None:
-        return {"status": "error", "details": "Map file is required!"}, 400
+        return {'map_file': ['Missing data for required field.']}, 400
 
     parsed_sections = parse_sections(map_file)
-    # print(parsed_sections)
-    save_parsed_data(parsed_sections, 'firmware.elf.map.all')
+    parsed_sections = save_parsed_data(parsed_sections)
 
-    from sqlalchemy import insert
+    with session_scope() as session:
+        header_new = Header(
+            datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            commit=result['commit_hash'],
+            commit_msg=result['commit_msg'],
+            branch_name=result['branch_name'],
+            bss_size=result['bss_size'],
+            text_size=result['text_size'],
+            rodata_size=result['rodata_size'],
+            data_size=result['data_size'],
+            free_flash_size=result['free_flash_size'],
+            pullrequest_id=result['pull_id'],
+            pullrequest_name=result['pull_name'],
+        )
+        session.add(header_new)
+        session.flush()
 
-    session = db.session
+        for parsed_section in parsed_sections:
+            data = Data(
+                header_id=header_new.id,
+                section=parsed_section['section_name'],
+                address=parsed_section['address'],
+                size=parsed_section['size'],
+                name=parsed_section['demangled_name'],
+                lib=parsed_section['module_name'],
+                obj_name=parsed_section['file_name'],
+            )
+            session.add(data)
 
-    # commit_hash = os.getenv("COMMIT_HASH")
-    # commit_msg = os.getenv("COMMIT_MSG")
-    # branch_name = os.getenv("BRANCH_NAME")
-    # bss_size = os.getenv("BSS_SIZE")
-    # text_size = os.getenv("TEXT_SIZE")
-    # rodata_size = os.getenv("RODATA_SIZE")
-    # data_size = os.getenv("DATA_SIZE")
-    # free_flash_size = os.getenv("FREE_FLASH_SIZE")
-    # pull_id = os.getenv("PULL_ID")
-    # pull_name = os.getenv("PULL_NAME")
-
-    # from datetime import datetime
-
-    # header_new = Header(
-    #     datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    #     commit=commit_hash,
-    #     commit_msg=commit_msg,
-    #     branch_name=branch_name,
-    #     bss_size=bss_size,
-    #     text_size=text_size,
-    #     rodata_size=rodata_size,
-    #     data_size=data_size,
-    #     free_flash_size=free_flash_size,
-    #     pullrequest_id=pull_id,
-    #     pullrequest_name=pull_name
-    # )
-    # session.add(header_new)
-
-    header_new = Data(
-        section=section,
-        address=address,
-        size=size,
-        name=name,
-        lib=lib,
-        obj_name=obj_name,
-    )
-    session.add(header_new)
-    session.commit()
-
-    # header_new = Header(
-    #     datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    #     commit=commit_hash,
-    #     commit_msg=commit_msg,
-    #     branch_name=branch_name,
-    #     bss_size=bss_size,
-    #     text_size=text_size,
-    #     rodata_size=rodata_size,
-    #     data_size=data_size,
-    #     free_flash_size=free_flash_size,
-    #     pullrequest_id=pull_id,
-    #     pullrequest_name=pull_name
-    # )
-    # session.add(header_new)
-    # session.commit()
-    print(stmt)
-
-    # header_id = insertHeader(parseEnv(), dbCurs, dbConn)
-    # insertData(parseFile(reportFile, header_id), dbCurs, dbConn)
-
-    return jsonify({"status": "Map file has been inserted!"})
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/v0/ping", methods=["GET"])

@@ -26,12 +26,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-import sys
 import re
 import os
-from typing import TextIO
-# from cxxfilt import demangle
-from cpp_demangle import demangle
+from cxxfilt import demangle
+from werkzeug.datastructures import FileStorage
 
 
 class ObjectFile:
@@ -74,7 +72,7 @@ def update_children_size(children: list[list], subsection_size: int) -> list:
     return children
 
 
-def parse_sections(file: bytes) -> list:
+def parse_sections(file: FileStorage) -> list:
     """
     Quick&Dirty parsing for GNU ld’s linker map output, needs LANG=C, because
     some messages are localized.
@@ -86,7 +84,6 @@ def parse_sections(file: bytes) -> list:
 
     while True:
         line = file.readline().decode()
-        # print(line)
         if not line:
             break
         if line.strip() == "Memory Configuration":
@@ -95,7 +92,7 @@ def parse_sections(file: bytes) -> list:
 
     if not found:
         raise Exception(
-            f"Memory configuration is not found in the {file_name.filename}"
+            f"Memory configuration is not found in the {file.filename}"
         )
 
     # long section names result in a linebreak afterwards
@@ -179,22 +176,22 @@ def write_subsection(
     module_name: str,
     file_name: str,
     mangled_name: str,
-    write_file_object: TextIO,
+    result_array: list[dict],
 ) -> None:
-    write_file_object.write(
-        f"{section_name}\t"
-        f"{subsection_name}\t"
-        f"{address}\t"
-        f"{size}\t"
-        f"{demangled_name}\t"
-        f"{module_name}\t"
-        f"{file_name}\t"
-        f"{mangled_name}\n"
-    )
+    result_array.append({
+        "section_name": section_name,
+        "subsection_name": subsection_name,
+        "address": address,
+        "size": size,
+        "demangled_name": demangled_name,
+        "module_name": module_name,
+        "file_name": file_name,
+        "mangled_name": mangled_name,
+    })
 
 
 def save_subsection(
-    section_name: str, subsection: ObjectFile, write_file_object: TextIO
+    section_name: str, subsection: ObjectFile, result_array: list[dict]
 ) -> None:
     subsection_name = get_subsection_name(section_name, subsection)
     module_name = subsection.path[0]
@@ -222,7 +219,7 @@ def save_subsection(
             module_name=module_name,
             file_name=file_name,
             mangled_name=mangled_name,
-            write_file_object=write_file_object,
+            result_array=result_array,
         )
         return
 
@@ -230,7 +227,7 @@ def save_subsection(
         address = f"{subsection_child[0]:x}"
         size = subsection_child[1]
         mangled_name = subsection_child[2]
-        print(mangled_name)
+        # print(mangled_name)
         demangled_name = demangle(mangled_name)
 
         write_subsection(
@@ -242,39 +239,23 @@ def save_subsection(
             module_name=module_name,
             file_name=file_name,
             mangled_name=mangled_name,
-            write_file_object=write_file_object,
+            result_array=result_array,
         )
 
 
-def save_section(section: ObjectFile, write_file_object: TextIO) -> None:
+def save_section(section: ObjectFile, result_array: list) -> None:
     section_name = section.section
     for subsection in section.children:
         save_subsection(
             section_name=section_name,
             subsection=subsection,
-            write_file_object=write_file_object,
+            result_array=result_array,
         )
 
 
-def save_parsed_data(parsed_data: list[ObjectFile], output_file_name: str) -> None:
-    with open(output_file_name, "w") as write_file_object:
-        for section in parsed_data:
-            if section.children:
-                save_section(section=section, write_file_object=write_file_object)
-
-#
-# if __name__ == "__main__":
-#     if len(sys.argv) < 3:
-#         raise Exception(f"Usage: {sys.argv[0]} <input file> <output file>")
-#
-#     input_file = sys.argv[1]
-#     output_file = sys.argv[2]
-#
-#     parsed_sections = parse_sections(input_file)
-#
-#     print(parsed_sections)
-#
-#     if parsed_sections is None:
-#         raise Exception(f"Memory configuration is not {input_file}")
-#
-#     save_parsed_data(parsed_sections, output_file)
+def save_parsed_data(parsed_data: list[ObjectFile]) -> list[dict]:
+    result_array = []
+    for section in parsed_data:
+        if section.children:
+            save_section(section=section, result_array=result_array)
+    return result_array
