@@ -1,21 +1,18 @@
-import json
 import os
 import re
 import time
-from functools import wraps
-from datetime import datetime
 from contextlib import contextmanager
+from datetime import datetime
+from functools import wraps
 from typing import Dict, List, TypedDict
-
-from marshmallow import Schema, fields, ValidationError
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
+from marshmallow import Schema, ValidationError, fields
 from sqlalchemy.sql import desc, func
 
 from app.services.map_parser import parse_sections, save_parsed_data
-
 
 app = Flask(__name__)
 
@@ -198,9 +195,7 @@ INTERESTING_SECTIONS = [
 
 
 class HashDataHelper:
-    def hash_data(
-        self, lib: str, obj_name: str, name: str, section: str
-    ) -> DataTypedDict:
+    def hash_data(self, lib: str, obj_name: str, name: str, section: str) -> DataTypedDict:
         value: DataTypedDict = {
             "header_id": 0,
             "id": 0,
@@ -229,7 +224,7 @@ class HashData:
 
             helper = HashDataHelper()
             hash_key = helper.hash_key(d)
-            if not hash_key in self.hash:
+            if hash_key not in self.hash:
                 self.hash[hash_key] = helper.hash_data(lib, obj_name, name, section)
             self.hash[hash_key]["size"] += size
 
@@ -245,21 +240,19 @@ class DiffHashData:
 
         # equalize the hashe1 with hash2
         for key in hashed_data2:
-            if not key in hashed_data1:
+            if key not in hashed_data1:
                 hashed_data1[key] = hashed_data2[key].copy()
                 hashed_data1[key]["size"] = 0
 
         # equalize the hashe2 with hash1
         for key in hashed_data1:
-            if not key in hashed_data2:
+            if key not in hashed_data2:
                 hashed_data2[key] = hashed_data1[key].copy()
                 hashed_data2[key]["size"] = 0
 
         # diff between the hashes
         for key in hashed_data1:
-            hashed_data1[key]["size"] = (
-                hashed_data1[key]["size"] - hashed_data2[key]["size"]
-            )
+            hashed_data1[key]["size"] = hashed_data1[key]["size"] - hashed_data2[key]["size"]
             if hashed_data1[key]["size"] != 0:
                 self.diff.append(hashed_data1[key])
 
@@ -306,13 +299,13 @@ class Sections:
         for entry in data:
             section = entry["section"]
 
-            if not section in self.sections:
+            if section not in self.sections:
                 self.sections[section] = {"size": 0, "objects": {}}
             current_section = self.sections[section]
             current_section["size"] += entry["size"]
 
             obj_name = flipper_path(entry["lib"], entry["obj_name"])
-            if not obj_name in current_section["objects"]:
+            if obj_name not in current_section["objects"]:
                 current_section["objects"][obj_name] = {
                     "size": 0,
                     "symbols": {},
@@ -321,7 +314,7 @@ class Sections:
             current_object["size"] += entry["size"]
 
             symbol_name = entry["name"]
-            if not symbol_name in current_object["symbols"]:
+            if symbol_name not in current_object["symbols"]:
                 current_object["symbols"][symbol_name] = 0
 
             current_object["symbols"][symbol_name] += entry["size"]
@@ -342,12 +335,11 @@ class Files:
             path_parts = path.split("/")
             current = self.files
             for part in path_parts:
-
-                if not part in current["next"]:
+                if part not in current["next"]:
                     current["next"][part] = {"sections": {}, "next": {}}
                 current = current["next"][part]
 
-                if not section in current["sections"]:
+                if section not in current["sections"]:
                     current["sections"][section] = {
                         "size": 0,
                         "names": {},
@@ -355,7 +347,7 @@ class Files:
                 current_section = current["sections"][section]
                 current_section["size"] += size
 
-                if not name in current_section["names"]:
+                if name not in current_section["names"]:
                     current_section["names"][name] = 0
                 current_section["names"][name] += size
 
@@ -368,9 +360,7 @@ class Files:
                 else:
                     key = child
 
-                store["next"][key] = tree_flatten(
-                    childrens[child], get_children, flatten_func, value_key, key
-                )
+                store["next"][key] = tree_flatten(childrens[child], get_children, flatten_func, value_key, key)
 
             store = flatten_func(store, value_key)
             return store
@@ -406,8 +396,10 @@ class Files:
     def get_files(self):
         return self.files
 
+
 with app.app_context():
     db.create_all()
+
 
 @app.route("/api/v0/commit_diff_data", methods=["GET"])
 @cross_origin()
@@ -484,19 +476,11 @@ def api_v0_branch():
 
     headers = []
     if branch_name == "dev":
-        dev_branch = (
-            Header.query.filter(Header.branch_name == branch_name)
-            .order_by(Header.datetime)
-            .all()
-        )
+        dev_branch = Header.query.filter(Header.branch_name == branch_name).order_by(Header.datetime).all()
         headers = [h.serialize for h in dev_branch]
     else:
         # select last header for branch
-        branch = (
-            Header.query.filter(Header.branch_name == branch_name)
-            .order_by(desc(Header.datetime))
-            .limit(1)
-        )
+        branch = Header.query.filter(Header.branch_name == branch_name).order_by(desc(Header.datetime)).limit(1)
 
         # select latest header for dev before branch
         if branch.count() != 0:
@@ -549,12 +533,10 @@ def api_v0_branches():
             release_candidate_branches.append({"branch_name": name, "count": count})
         elif "/" in name:
             username, _ = name.split("/", 1)
-            if not username in pull_request_user_branches:
+            if username not in pull_request_user_branches:
                 pull_request_user_branches[username] = {"branches": [], "count": 0}
 
-            pull_request_user_branches[username]["branches"].append(
-                {"branch_name": name, "count": count}
-            )
+            pull_request_user_branches[username]["branches"].append({"branch_name": name, "count": count})
         else:
             misc_branches.append({"branch_name": name, "count": count})
 

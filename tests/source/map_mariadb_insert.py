@@ -3,11 +3,12 @@
 # Requiremets:
 #   mariadb==1.1.6
 
-from datetime import datetime
 import argparse
+import os
+
 # import mariadb
 import sys
-import os
+from datetime import datetime
 
 
 def parseArgs():
