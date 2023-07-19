@@ -13,6 +13,7 @@ from marshmallow import Schema, ValidationError, fields
 from sqlalchemy.sql import desc, func
 
 from app.services.map_parser import parse_sections, save_parsed_data
+from app.authentication import validate_auth
 
 app = Flask(__name__)
 
@@ -558,6 +559,7 @@ def api_v0_branches():
 
 @app.route("/api/v0/map-file/analyse", methods=["POST"])
 @cross_origin()
+@validate_auth
 def api_v0_analyse_map_file():
     """Analyse map file"""
     try:
