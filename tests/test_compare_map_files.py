@@ -93,17 +93,29 @@ def test_run_map_parser(cli: FlaskClient, prepare_input_map_file_data: dict, tmp
 def test_compare_data(cli: FlaskClient, prepare_input_map_file_data: dict, monkeypatch: MonkeyPatch):
 
     with app.test_request_context():
-        header_1 = Header.query.filter(Header.id == 1).first()
-        header_2 = Header.query.filter(Header.id == 2).first()
+        header_1 = Header.query.filter(Header.id == 1).first().serialize
+        header_2 = Header.query.filter(Header.id == 2).first().serialize
 
-        print(header_1.serialize)
-        assert False
-        # headers = session.query(Header).all()
-        # assert len(headers) == 1
-    # ...
-    #
-    # with app.test_request_context():
-    #     session = db.session
-    #     headers = session.query(Header).all()
-    #
-    # print(headers[0].serialize)
+        assert header_1['commit'] == header_2['commit']
+        assert header_1['commit_msg'] == header_2['commit_msg']
+        assert header_1['branch_name'] == header_2['branch_name']
+        assert header_1['bss_size'] == header_2['bss_size']
+        assert header_1['text_size'] == header_2['text_size']
+        assert header_1['rodata_size'] == header_2['rodata_size']
+        assert header_1['data_size'] == header_2['data_size']
+        assert header_1['free_flash_size'] == header_2['free_flash_size']
+        assert header_1['pullrequest_id'] == header_2['pullrequest_id']
+        assert header_1['pullrequest_name'] == header_2['pullrequest_name']
+
+        data_1 = Data.query.filter(Data.id == 1).all()
+        data_2 = Data.query.filter(Data.id == 2).all()
+
+        assert len(data_1) == len(data_2)
+
+        for i in range(len(data_1)):
+            assert data_1[i].serialize['section'] == data_2[i].serialize['section']
+            assert data_1[i].serialize['address'] == data_2[i].serialize['address']
+            assert data_1[i].serialize['size'] == data_2[i].serialize['size']
+            assert data_1[i].serialize['name'] == data_2[i].serialize['name']
+            assert data_1[i].serialize['lib'] == data_2[i].serialize['lib']
+            assert data_1[i].serialize['obj_name'] == data_2[i].serialize['obj_name']
