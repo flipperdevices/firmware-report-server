@@ -12,6 +12,9 @@ gunicorn = "*"
 marshmallow = "*"
 cxxfilt = "==0.2.1"
 pytest = "*"
+pytest-env = "*"
+pyngrok = "*"
+mariadb = "*"
 
 [dev-packages]
 

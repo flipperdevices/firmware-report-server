@@ -32,7 +32,9 @@ import sys
 from typing import TextIO
 
 # from cxxfilt import demangle
-from cpp_demangle import demangle
+
+def demangle(string: str):
+    return string
 
 
 class Objectfile:
@@ -255,7 +257,6 @@ if __name__ == "__main__":
     output_file = sys.argv[2]
 
     parsed_sections = parse_sections(input_file)
-    # print(parsed_sections)
 
     if parsed_sections is None:
         raise Exception(f"Memory configuration is not {input_file}")

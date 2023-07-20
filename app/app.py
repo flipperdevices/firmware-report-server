@@ -15,6 +15,12 @@ from sqlalchemy.sql import desc, func
 from app.services.map_parser import parse_sections, save_parsed_data
 from app.authentication import validate_auth
 
+# from pyngrok import ngrok
+#
+# http_tunnel = ngrok.connect(6754)
+# print("ngrok tunnel \"{}\" -> \"http://0.0.0.0:{}\"".format(http_tunnel.public_url, 8000))
+
+
 app = Flask(__name__)
 
 cors = CORS(app)
@@ -398,8 +404,8 @@ class Files:
         return self.files
 
 
-with app.app_context():
-    db.create_all()
+# with app.app_context():
+#     db.create_all()
 
 
 @app.route("/api/v0/commit_diff_data", methods=["GET"])
@@ -574,6 +580,7 @@ def api_v0_analyse_map_file():
     parsed_sections = save_parsed_data(parsed_sections)
 
     with session_scope() as session:
+    # if False:
         header_new = Header(
             datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             commit=result['commit_hash'],

@@ -1,38 +1,31 @@
 import os
 
 import pytest
-from flask import Flask
 
 from app.app import app
-# # Override databases
-# motor_client = AsyncIOMotorClient(MONGO_TEST_URI)
-# db = motor_client[MONGO_TEST_URI.split("/")[-1]]
+from app.app import db
 
 
-TEST_AUTH_TOKEN = "*"
-
-
-# @pytest.fixture()
-# def app():
-# #     app = app
-# #     # app = Flask(__name__)
-# #     # app.config.update({
-# #     #     "TESTING": True,
-# #     #     "SQLALCHEMY_DATABASE_URI": os.environ.get("DATABASE_URI")
-# #     # })
-#     yield app
-
-
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def cli():
     client = app.test_client()
-    client.environ_base['HTTP_AUTHORIZATION'] = 'Bearer ' + TEST_AUTH_TOKEN
+    client.environ_base['HTTP_AUTHORIZATION'] = 'Bearer ' + os.getenv('APP_AUTH_TOKEN')
+
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+
     return client
 
 
 @pytest.fixture(scope="class")
 def prepare_input_map_file_data():
     data = {
+        'branch_name': 'dev',
+        'commit_hash': 'sdfvm432k423c2osdvgbers7t8ve35c0493i54v',
+        'commit_msg': 'new commit',
+        'pull_id': 1,
+        'pull_name': 'push pr',
         "bss_size": 8200,
         "text_size": 547708,
         "rodata_size": 146240,
