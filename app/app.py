@@ -15,11 +15,6 @@ from sqlalchemy.sql import desc, func
 from app.authentication import validate_auth
 from app.services.map_parser import parse_sections, save_parsed_data
 
-# from pyngrok import ngrok
-#
-# http_tunnel = ngrok.connect(6754)
-# print("ngrok tunnel \"{}\" -> \"http://0.0.0.0:{}\"".format(http_tunnel.public_url, 8000))
-
 
 app = Flask(__name__)
 
@@ -42,149 +37,6 @@ def session_scope():
         raise
     finally:
         session.close()
-
-
-class MapFileRequestSchema(Schema):
-    commit_hash = fields.String(required=True)
-    commit_msg = fields.String(required=True)
-    branch_name = fields.String(required=True)
-    bss_size = fields.Integer(required=True)
-    text_size = fields.Integer(required=True)
-    rodata_size = fields.Integer(required=True)
-    data_size = fields.Integer(required=True)
-    free_flash_size = fields.Integer(required=True)
-    pull_id = fields.Integer(required=True)
-    pull_name = fields.String(required=True)
-
-
-def time_it(func):
-    """decorator to time a function"""
-
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        print(f"Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds")
-        return result
-
-    return timeit_wrapper
-
-
-def cache_it():
-    """decorator to cache a function result"""
-    d = {}
-
-    def decorator(func):
-        def new_func(param):
-            if param not in d:
-                d[param] = func(param)
-            return d[param]
-
-        return new_func
-
-    return decorator
-
-
-class Data(db.Model):  # type: ignore
-    # +-----------+------------------+------+-----+---------+----------------+
-    # | Field     | Type             | Null | Key | Default | Extra          |
-    # +-----------+------------------+------+-----+---------+----------------+
-    # | header_id | int(10) unsigned | NO   | MUL | NULL    |                |
-    # | id        | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-    # | section   | text             | NO   |     | NULL    |                |
-    # | address   | text             | NO   |     | NULL    |                |
-    # | size      | int(10) unsigned | NO   |     | NULL    |                |
-    # | name      | text             | NO   |     | NULL    |                |
-    # | lib       | text             | NO   |     | NULL    |                |
-    # | obj_name  | text             | NO   |     | NULL    |                |
-    # +-----------+------------------+------+-----+---------+----------------+
-
-    __tablename__ = "data"
-    header_id = db.Column(db.Integer, db.ForeignKey("header.id"))
-    id = db.Column(db.Integer, primary_key=True, nullable=False, autoincrement=True)
-    section = db.Column(db.Text, nullable=False)
-    address = db.Column(db.Text, nullable=False)
-    size = db.Column(db.Integer, nullable=False)
-    name = db.Column(db.Text, nullable=False)
-    lib = db.Column(db.Text, nullable=False)
-    obj_name = db.Column(db.Text, nullable=False)
-
-    @property
-    def serialize(self):
-        return {
-            "header_id": self.header_id,
-            "id": self.id,
-            "section": self.section,
-            "address": self.address,
-            "size": self.size,
-            "name": self.name,
-            "lib": self.lib,
-            "obj_name": self.obj_name,
-        }
-
-
-class DataTypedDict(TypedDict):
-    header_id: int
-    id: int
-    address: str
-    section: str
-    size: int
-    name: str
-    lib: str
-    obj_name: str
-
-
-class Header(db.Model):  # type: ignore
-    # +------------------+------------------+------+-----+---------+----------------+
-    # | Field            | Type             | Null | Key | Default | Extra          |
-    # +------------------+------------------+------+-----+---------+----------------+
-    # | id               | int(10) unsigned | NO   | PRI | NULL    | auto_increment |
-    # | datetime         | datetime         | NO   |     | NULL    |                |
-    # | commit           | varchar(40)      | NO   |     | NULL    |                |
-    # | commit_msg       | text             | NO   |     | NULL    |                |
-    # | branch_name      | text             | NO   |     | NULL    |                |
-    # | bss_size         | int(10) unsigned | NO   |     | NULL    |                |
-    # | text_size        | int(10) unsigned | NO   |     | NULL    |                |
-    # | rodata_size      | int(10) unsigned | NO   |     | NULL    |                |
-    # | data_size        | int(10) unsigned | NO   |     | NULL    |                |
-    # | free_flash_size  | int(10) unsigned | NO   |     | NULL    |                |
-    # | pullrequest_id   | int(10) unsigned | YES  |     | NULL    |                |
-    # | pullrequest_name | text             | YES  |     | NULL    |                |
-    # +------------------+------------------+------+-----+---------+----------------+
-
-    __tablename__ = "header"
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
-    commit = db.Column(db.String(40), nullable=False)
-    commit_msg = db.Column(db.Text, nullable=False)
-    branch_name = db.Column(db.String(32), unique=False, nullable=False)
-    bss_size = db.Column(db.Integer, nullable=False)
-    text_size = db.Column(db.Integer, nullable=False)
-    rodata_size = db.Column(db.Integer, nullable=False)
-    data_size = db.Column(db.Integer, nullable=False)
-    free_flash_size = db.Column(db.Integer, nullable=False)
-    pullrequest_id = db.Column(db.Integer, nullable=True)
-    pullrequest_name = db.Column(db.String(128), unique=False, nullable=True)
-
-    @property
-    def serialize(self):
-        """Return object data in easily serializable format"""
-        return {
-            "id": self.id,
-            "datetime": self.datetime,
-            "commit": self.commit,
-            "commit_msg": self.commit_msg,
-            "branch_name": self.branch_name,
-            "bss_size": self.bss_size,
-            "text_size": self.text_size,
-            "rodata_size": self.rodata_size,
-            "data_size": self.data_size,
-            "free_flash_size": self.free_flash_size,
-            "pullrequest_id": self.pullrequest_id,
-            "pullrequest_name": self.pullrequest_name,
-        }
 
 
 INTERESTING_SECTIONS = [
@@ -269,39 +121,6 @@ class DiffHashData:
 
     def get_diff(self) -> List[DataTypedDict]:
         return self.diff
-
-
-def get_commits_by_branch_id(branch_id: int) -> List[DataTypedDict]:
-    """Get all commits by branch id"""
-    result = (
-        Data.query.filter(Data.header_id == branch_id)
-        .filter(Data.section.in_(INTERESTING_SECTIONS))
-        .filter(Data.size > 0)
-        .all()
-    )
-    return [row.serialize for row in result]
-
-
-def minify_path(path: str):
-    """Minify path to be more readable"""
-    if "arm-none-eabi/" in path:
-        return path.rsplit("arm-none-eabi/", 1)[1]
-    else:
-        return path.replace("build/f7-firmware-D/", "")
-
-
-def flipper_path(lib, obj_name):
-    """Make a readable path given that we have libraries"""
-    lib = minify_path(lib)
-    obj_name = minify_path(obj_name)
-    if lib:
-        lib = lib.rsplit(".a", 1)[0]
-        lib = lib.rsplit("/lib", 1)
-        lib = "/".join(lib)
-        path = f"{lib}/{obj_name}"
-    else:
-        path = f"{obj_name}"
-    return path
 
 
 class Sections:
@@ -408,10 +227,6 @@ class Files:
 
     def get_files(self):
         return self.files
-
-
-# with app.app_context():
-#     db.create_all()
 
 
 @app.route("/api/v0/commit_diff_data", methods=["GET"])
@@ -622,9 +437,6 @@ def api_v0_analyse_map_file():
                 lib=parsed_section["module_name"],
                 obj_name=parsed_section["file_name"],
             )
-            # print(parsed_section)
-            # print(777, data.address, data.lib, data.obj_name, data.lib)
-            # assert False
             session.add(data)
 
     return jsonify({"status": "ok"})
