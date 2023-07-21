@@ -7,7 +7,7 @@ from pytest import MonkeyPatch
 
 from tests.source import map_mariadb_insert
 from tests.source import map_parser
-from app.app import Data, Header, session_scope, app
+from app.app import Data, Header, app
 
 
 def test_analyse_map_file(cli: FlaskClient, prepare_input_map_file_data: dict):
@@ -44,7 +44,6 @@ def test_run_map_parser(cli: FlaskClient, prepare_input_map_file_data: dict, tmp
     Returns:
         Nothing
     """
-    # Emulate
     # parse sections
     parsed_sections = map_parser.parse_sections('tests/assets/firmware.elf.map')
 
@@ -65,19 +64,7 @@ def test_run_map_parser(cli: FlaskClient, prepare_input_map_file_data: dict, tmp
         return Arguments()
 
     def mocked_parse_env():
-        return [
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            prepare_input_map_file_data['commit_hash'],
-            prepare_input_map_file_data['commit_msg'],
-            prepare_input_map_file_data['branch_name'],
-            prepare_input_map_file_data['bss_size'],
-            prepare_input_map_file_data['text_size'],
-            prepare_input_map_file_data['rodata_size'],
-            prepare_input_map_file_data['data_size'],
-            prepare_input_map_file_data['free_flash_size'],
-            prepare_input_map_file_data['pull_id'],
-            prepare_input_map_file_data['pull_name'],
-        ]
+        return [datetime.now().strftime("%Y-%m-%d %H:%M:%S")] + [*prepare_input_map_file_data.values()]
 
     monkeypatch.setattr("tests.source.map_mariadb_insert.parseArgs", mocked_parse_args)
     monkeypatch.setattr("tests.source.map_mariadb_insert.parseEnv", mocked_parse_env)
@@ -90,9 +77,18 @@ def test_run_map_parser(cli: FlaskClient, prepare_input_map_file_data: dict, tmp
         assert len(Data.query.filter(Data.id == 2).all()) > 0
 
 
-def test_compare_data(cli: FlaskClient, prepare_input_map_file_data: dict, monkeypatch: MonkeyPatch):
+def test_compare_data(cli: FlaskClient):
+    """
+    Test to run a comparison of data obtained with the help
+    of endpoint and running the script from a file
+    Args:
+        cli: Server test client
 
+    Returns:
+        Nothing
+    """
     with app.test_request_context():
+        # Comparing Headers of endpoint anf file script
         header_1 = Header.query.filter(Header.id == 1).first().serialize
         header_2 = Header.query.filter(Header.id == 2).first().serialize
 
@@ -107,8 +103,9 @@ def test_compare_data(cli: FlaskClient, prepare_input_map_file_data: dict, monke
         assert header_1['pullrequest_id'] == header_2['pullrequest_id']
         assert header_1['pullrequest_name'] == header_2['pullrequest_name']
 
-        data_1 = Data.query.filter(Data.id == 1).all()
-        data_2 = Data.query.filter(Data.id == 2).all()
+        # Comparing Data of endpoint anf file script
+        data_1 = Data.query.filter(Data.header_id == 1).all()
+        data_2 = Data.query.filter(Data.header_id == 2).all()
 
         assert len(data_1) == len(data_2)
 

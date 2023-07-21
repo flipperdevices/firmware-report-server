@@ -580,7 +580,6 @@ def api_v0_analyse_map_file():
     parsed_sections = save_parsed_data(parsed_sections)
 
     with session_scope() as session:
-    # if False:
         header_new = Header(
             datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             commit=result['commit_hash'],
@@ -607,6 +606,9 @@ def api_v0_analyse_map_file():
                 lib=parsed_section['module_name'],
                 obj_name=parsed_section['file_name'],
             )
+            # print(parsed_section)
+            # print(777, data.address, data.lib, data.obj_name, data.lib)
+            # assert False
             session.add(data)
 
     return jsonify({"status": "ok"})

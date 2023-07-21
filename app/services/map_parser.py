@@ -88,7 +88,7 @@ def parse_sections(file: FileStorage) -> list:
     found = False
 
     while True:
-        line = file.readline().decode()
+        line = file.readline().decode().replace('\r', '')
         if not line:
             break
         if line.strip() == "Memory Configuration":
@@ -96,7 +96,7 @@ def parse_sections(file: FileStorage) -> list:
             break
 
     if not found:
-        raise Exception(f"Memory configuration is not found in the {file.filename}")
+        raise Exception(f"Memory configuration is not found in the {file}")
 
     # long section names result in a linebreak afterwards
     sectionre = re.compile(
@@ -104,7 +104,7 @@ def parse_sections(file: FileStorage) -> list:
         re.I,
     )
     subsectionre = re.compile("[ ]{16}0x(?P<offset>[0-9a-f]+)[ ]+(?P<function>.+)\n+", re.I)
-    s = file.read().decode()
+    s = file.read().decode().replace('\r', '')
     pos = 0
 
     while True:
@@ -128,7 +128,6 @@ def parse_sections(file: FileStorage) -> list:
 
         if section != "*default*" and size > 0:
             of = ObjectFile(section, offset, size, comment)
-
             if section.startswith(" "):
                 children = []
                 sections[-1].children.append(of)
@@ -177,7 +176,7 @@ def write_subsection(
         {
             "section_name": section_name,
             "subsection_name": subsection_name,
-            "address": address,
+            "address": int(address, 16),
             "size": size,
             "demangled_name": demangled_name,
             "module_name": module_name,
@@ -218,7 +217,6 @@ def save_subsection(section_name: str, subsection: ObjectFile, result_array: lis
         address = f"{subsection_child[0]:x}"
         size = subsection_child[1]
         mangled_name = subsection_child[2]
-        # print(mangled_name)
         demangled_name = demangle(mangled_name)
 
         write_subsection(
