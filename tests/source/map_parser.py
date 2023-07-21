@@ -33,6 +33,7 @@ from typing import TextIO
 
 # from cxxfilt import demangle
 
+
 def demangle(string: str):
     return string
 
@@ -105,7 +106,9 @@ def parse_sections(file_name: str) -> list:
             "(?P<section>.+?|.{14,}\n)[ ]+0x(?P<offset>[0-9a-f]+)[ ]+0x(?P<size>[0-9a-f]+)(?:[ ]+(?P<comment>.+))?\n+",
             re.I,
         )
-        subsectionre = re.compile("[ ]{16}0x(?P<offset>[0-9a-f]+)[ ]+(?P<function>.+)\n+", re.I)
+        subsectionre = re.compile(
+            "[ ]{16}0x(?P<offset>[0-9a-f]+)[ ]+(?P<function>.+)\n+", re.I
+        )
         s = file.read()
         pos = 0
         while True:
@@ -145,7 +148,9 @@ def parse_sections(file_name: str) -> list:
                             children.append([offset, 0, function])
 
                     if children:
-                        children = update_children_size(children=children, subsection_size=of.size)
+                        children = update_children_size(
+                            children=children, subsection_size=of.size
+                        )
 
                     sections[-1].children[-1].children.extend(children)
 
@@ -160,7 +165,11 @@ def get_subsection_name(section_name: str, subsection: Objectfile) -> str:
     if subsection.section.startswith("."):
         subsection_split_names = subsection_split_names[1:]
 
-    return f".{subsection_split_names[1]}" if len(subsection_split_names) > 2 else section_name
+    return (
+        f".{subsection_split_names[1]}"
+        if len(subsection_split_names) > 2
+        else section_name
+    )
 
 
 def write_subsection(
@@ -186,7 +195,9 @@ def write_subsection(
     )
 
 
-def save_subsection(section_name: str, subsection: Objectfile, write_file_object: TextIO) -> None:
+def save_subsection(
+    section_name: str, subsection: Objectfile, write_file_object: TextIO
+) -> None:
     subsection_name = get_subsection_name(section_name, subsection)
     module_name = subsection.path[0]
     file_name = subsection.path[1]
@@ -197,7 +208,11 @@ def save_subsection(section_name: str, subsection: Objectfile, write_file_object
     if not subsection.children:
         address = f"{subsection.offset:x}"
         size = subsection.size
-        mangled_name = "" if subsection.section == section_name else subsection.section.split(".")[-1]
+        mangled_name = (
+            ""
+            if subsection.section == section_name
+            else subsection.section.split(".")[-1]
+        )
         demangled_name = demangle(mangled_name) if mangled_name else mangled_name
 
         write_subsection(

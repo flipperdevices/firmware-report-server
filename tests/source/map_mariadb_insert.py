@@ -5,10 +5,10 @@
 
 import argparse
 import os
-
-import mariadb
 import sys
 from datetime import datetime
+
+import mariadb
 
 
 def parseArgs():

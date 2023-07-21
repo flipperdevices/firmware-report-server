@@ -12,8 +12,8 @@ from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, ValidationError, fields
 from sqlalchemy.sql import desc, func
 
-from app.services.map_parser import parse_sections, save_parsed_data
 from app.authentication import validate_auth
+from app.services.map_parser import parse_sections, save_parsed_data
 
 # from pyngrok import ngrok
 #
@@ -202,7 +202,9 @@ INTERESTING_SECTIONS = [
 
 
 class HashDataHelper:
-    def hash_data(self, lib: str, obj_name: str, name: str, section: str) -> DataTypedDict:
+    def hash_data(
+        self, lib: str, obj_name: str, name: str, section: str
+    ) -> DataTypedDict:
         value: DataTypedDict = {
             "header_id": 0,
             "id": 0,
@@ -259,7 +261,9 @@ class DiffHashData:
 
         # diff between the hashes
         for key in hashed_data1:
-            hashed_data1[key]["size"] = hashed_data1[key]["size"] - hashed_data2[key]["size"]
+            hashed_data1[key]["size"] = (
+                hashed_data1[key]["size"] - hashed_data2[key]["size"]
+            )
             if hashed_data1[key]["size"] != 0:
                 self.diff.append(hashed_data1[key])
 
@@ -367,7 +371,9 @@ class Files:
                 else:
                     key = child
 
-                store["next"][key] = tree_flatten(childrens[child], get_children, flatten_func, value_key, key)
+                store["next"][key] = tree_flatten(
+                    childrens[child], get_children, flatten_func, value_key, key
+                )
 
             store = flatten_func(store, value_key)
             return store
@@ -483,11 +489,19 @@ def api_v0_branch():
 
     headers = []
     if branch_name == "dev":
-        dev_branch = Header.query.filter(Header.branch_name == branch_name).order_by(Header.datetime).all()
+        dev_branch = (
+            Header.query.filter(Header.branch_name == branch_name)
+            .order_by(Header.datetime)
+            .all()
+        )
         headers = [h.serialize for h in dev_branch]
     else:
         # select last header for branch
-        branch = Header.query.filter(Header.branch_name == branch_name).order_by(desc(Header.datetime)).limit(1)
+        branch = (
+            Header.query.filter(Header.branch_name == branch_name)
+            .order_by(desc(Header.datetime))
+            .limit(1)
+        )
 
         # select latest header for dev before branch
         if branch.count() != 0:
@@ -543,7 +557,9 @@ def api_v0_branches():
             if username not in pull_request_user_branches:
                 pull_request_user_branches[username] = {"branches": [], "count": 0}
 
-            pull_request_user_branches[username]["branches"].append({"branch_name": name, "count": count})
+            pull_request_user_branches[username]["branches"].append(
+                {"branch_name": name, "count": count}
+            )
         else:
             misc_branches.append({"branch_name": name, "count": count})
 
@@ -573,8 +589,8 @@ def api_v0_analyse_map_file():
     except ValidationError as err:
         return jsonify(err.messages), 400
 
-    if (map_file := request.files.get('map_file')) is None:
-        return {'map_file': ['Missing data for required field.']}, 400
+    if (map_file := request.files.get("map_file")) is None:
+        return {"map_file": ["Missing data for required field."]}, 400
 
     parsed_sections = parse_sections(map_file)
     parsed_sections = save_parsed_data(parsed_sections)
@@ -582,16 +598,16 @@ def api_v0_analyse_map_file():
     with session_scope() as session:
         header_new = Header(
             datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            commit=result['commit_hash'],
-            commit_msg=result['commit_msg'],
-            branch_name=result['branch_name'],
-            bss_size=result['bss_size'],
-            text_size=result['text_size'],
-            rodata_size=result['rodata_size'],
-            data_size=result['data_size'],
-            free_flash_size=result['free_flash_size'],
-            pullrequest_id=result['pull_id'],
-            pullrequest_name=result['pull_name'],
+            commit=result["commit_hash"],
+            commit_msg=result["commit_msg"],
+            branch_name=result["branch_name"],
+            bss_size=result["bss_size"],
+            text_size=result["text_size"],
+            rodata_size=result["rodata_size"],
+            data_size=result["data_size"],
+            free_flash_size=result["free_flash_size"],
+            pullrequest_id=result["pull_id"],
+            pullrequest_name=result["pull_name"],
         )
         session.add(header_new)
         session.flush()
@@ -599,12 +615,12 @@ def api_v0_analyse_map_file():
         for parsed_section in parsed_sections:
             data = Data(
                 header_id=header_new.id,
-                section=parsed_section['section_name'],
-                address=parsed_section['address'],
-                size=parsed_section['size'],
-                name=parsed_section['demangled_name'],
-                lib=parsed_section['module_name'],
-                obj_name=parsed_section['file_name'],
+                section=parsed_section["section_name"],
+                address=parsed_section["address"],
+                size=parsed_section["size"],
+                name=parsed_section["demangled_name"],
+                lib=parsed_section["module_name"],
+                obj_name=parsed_section["file_name"],
             )
             # print(parsed_section)
             # print(777, data.address, data.lib, data.obj_name, data.lib)

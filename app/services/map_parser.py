@@ -88,7 +88,7 @@ def parse_sections(file: FileStorage) -> list:
     found = False
 
     while True:
-        line = file.readline().decode().replace('\r', '')
+        line = file.readline().decode().replace("\r", "")
         if not line:
             break
         if line.strip() == "Memory Configuration":
@@ -103,8 +103,10 @@ def parse_sections(file: FileStorage) -> list:
         "(?P<section>.+?|.{14,}\n)[ ]+0x(?P<offset>[0-9a-f]+)[ ]+0x(?P<size>[0-9a-f]+)(?:[ ]+(?P<comment>.+))?\n+",
         re.I,
     )
-    subsectionre = re.compile("[ ]{16}0x(?P<offset>[0-9a-f]+)[ ]+(?P<function>.+)\n+", re.I)
-    s = file.read().decode().replace('\r', '')
+    subsectionre = re.compile(
+        "[ ]{16}0x(?P<offset>[0-9a-f]+)[ ]+(?P<function>.+)\n+", re.I
+    )
+    s = file.read().decode().replace("\r", "")
     pos = 0
 
     while True:
@@ -143,7 +145,9 @@ def parse_sections(file: FileStorage) -> list:
                         children.append([offset, 0, function])
 
                 if children:
-                    children = update_children_size(children=children, subsection_size=of.size)
+                    children = update_children_size(
+                        children=children, subsection_size=of.size
+                    )
 
                 sections[-1].children[-1].children.extend(children)
 
@@ -158,7 +162,11 @@ def get_subsection_name(section_name: str, subsection: ObjectFile) -> str:
     if subsection.section.startswith("."):
         subsection_split_names = subsection_split_names[1:]
 
-    return f".{subsection_split_names[1]}" if len(subsection_split_names) > 2 else section_name
+    return (
+        f".{subsection_split_names[1]}"
+        if len(subsection_split_names) > 2
+        else section_name
+    )
 
 
 def write_subsection(
@@ -186,7 +194,9 @@ def write_subsection(
     )
 
 
-def save_subsection(section_name: str, subsection: ObjectFile, result_array: list[dict]) -> None:
+def save_subsection(
+    section_name: str, subsection: ObjectFile, result_array: list[dict]
+) -> None:
     subsection_name = get_subsection_name(section_name, subsection)
     module_name = subsection.path[0]
     file_name = subsection.path[1]
@@ -197,7 +207,11 @@ def save_subsection(section_name: str, subsection: ObjectFile, result_array: lis
     if not subsection.children:
         address = f"{subsection.offset:x}"
         size = subsection.size
-        mangled_name = "" if subsection.section == section_name else subsection.section.split(".")[-1]
+        mangled_name = (
+            ""
+            if subsection.section == section_name
+            else subsection.section.split(".")[-1]
+        )
         demangled_name = demangle(mangled_name) if mangled_name else mangled_name
 
         write_subsection(
