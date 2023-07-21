@@ -30,17 +30,6 @@ def cache_it():
     return decorator
 
 
-def get_commits_by_branch_id(branch_id: int) -> List[DataTypedDict]:
-    """Get all commits by branch id"""
-    result = (
-        Data.query.filter(Data.header_id == branch_id)
-        .filter(Data.section.in_(INTERESTING_SECTIONS))
-        .filter(Data.size > 0)
-        .all()
-    )
-    return [row.serialize for row in result]
-
-
 def minify_path(path: str):
     """Minify path to be more readable"""
     if "arm-none-eabi/" in path:
