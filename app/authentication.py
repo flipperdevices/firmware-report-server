@@ -1,3 +1,4 @@
+import os
 from functools import wraps
 
 from flask import request
@@ -10,8 +11,7 @@ def validate_auth(f):
         if "Authorization" in request.headers:
             token = request.headers["Authorization"].split(" ")[1]
 
-        # todo: load token from .envs
-        if not token or "*" != token:
+        if not token or os.environ.get("APP_AUTH_TOKEN") != token:
             return {
                 "status": "error",
                 "details": "Invalid Authentication token!",

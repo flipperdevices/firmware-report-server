@@ -15,11 +15,6 @@ from sqlalchemy.sql import desc, func
 from app.authentication import validate_auth
 from app.services.map_parser import parse_sections, save_parsed_data
 
-# from pyngrok import ngrok
-#
-# http_tunnel = ngrok.connect(6754)
-# print("ngrok tunnel \"{}\" -> \"http://0.0.0.0:{}\"".format(http_tunnel.public_url, 8000))
-
 
 app = Flask(__name__)
 
@@ -622,9 +617,6 @@ def api_v0_analyse_map_file():
                 lib=parsed_section["module_name"],
                 obj_name=parsed_section["file_name"],
             )
-            # print(parsed_section)
-            # print(777, data.address, data.lib, data.obj_name, data.lib)
-            # assert False
             session.add(data)
 
     return jsonify({"status": "ok"})
