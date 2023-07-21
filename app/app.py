@@ -405,10 +405,6 @@ class Files:
         return self.files
 
 
-# with app.app_context():
-#     db.create_all()
-
-
 @app.route("/api/v0/commit_diff_data", methods=["GET"])
 @cross_origin()
 def api_v0_commit_diff_data():
