@@ -77,11 +77,17 @@ class TestComparingFiles:
                 *prepare_input_map_file_data.values()
             ]
 
+        def mocked_create_tables(cur, conn):
+            ...
+
         monkeypatch.setattr(
             "tests.source.map_mariadb_insert.parseArgs", mocked_parse_args
         )
         monkeypatch.setattr(
             "tests.source.map_mariadb_insert.parseEnv", mocked_parse_env
+        )
+        monkeypatch.setattr(
+            "tests.source.map_mariadb_insert.createTables", mocked_create_tables
         )
 
         # run save into mariadb

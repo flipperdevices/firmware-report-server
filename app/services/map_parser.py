@@ -29,12 +29,8 @@
 import os
 import re
 
-# from cxxfilt import demangle
+from cxxfilt import demangle
 from werkzeug.datastructures import FileStorage
-
-
-def demangle(string: str):
-    return string
 
 
 class ObjectFile:

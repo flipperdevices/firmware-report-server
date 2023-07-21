@@ -31,11 +31,7 @@ import re
 import sys
 from typing import TextIO
 
-# from cxxfilt import demangle
-
-
-def demangle(string: str):
-    return string
+from cxxfilt import demangle
 
 
 class Objectfile:
@@ -277,4 +273,3 @@ if __name__ == "__main__":
         raise Exception(f"Memory configuration is not {input_file}")
 
     save_parsed_data(parsed_sections, output_file)
-    # python tests/source/map_parser.py tests/assets/firmware.elf.map tests/assets/firmware.elf.map.all2

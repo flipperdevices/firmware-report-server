@@ -125,12 +125,11 @@ def insertData(data, cur, conn):
 
 
 def main():
-    # python tests/source/map_mariadb_insert.py root root localhost 3306 amap_reports tests/assets/firmware.elf.map.all
     args = parseArgs()
     dbConn = mariadbConnect(args)
     reportFile = open(args.report_file)
     dbCurs = dbConn.cursor()
-    # createTables(dbCurs, dbConn)
+    createTables(dbCurs, dbConn)
     headerID = insertHeader(parseEnv(), dbCurs, dbConn)
     insertData(parseFile(reportFile, headerID), dbCurs, dbConn)
     reportFile.close()
