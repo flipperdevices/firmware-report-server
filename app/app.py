@@ -394,11 +394,11 @@ def api_v0_branches():
     )
 
 
-@app.route("/api/v0/map-file/analyse", methods=["POST"])
+@app.route("/api/v0/map-file/analyze", methods=["POST"])
 @cross_origin()
 @validate_auth
-def api_v0_analyse_map_file():
-    """Analyse map file"""
+def api_v0_analyze_map_file():
+    """Analyze map file"""
     try:
         result = MapFileRequestSchema().load(request.form)
     except ValidationError as err:

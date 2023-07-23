@@ -11,7 +11,7 @@ from tests.source import map_mariadb_insert, map_parser
 
 class TestComparingFiles:
 
-    def test_analyse_map_file(
+    def test_analyze_map_file(
         self, cli: FlaskClient, prepare_input_map_file_data: dict
     ):
         """
@@ -25,7 +25,7 @@ class TestComparingFiles:
         """
         with open("tests/assets/firmware.elf.map", "rb") as map_file_reader:
             response = cli.post(
-                "/api/v0/map-file/analyse",
+                "/api/v0/map-file/analyze",
                 data=prepare_input_map_file_data | {"map_file": map_file_reader},
             )
             assert response.status_code == 200
