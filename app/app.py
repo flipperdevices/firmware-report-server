@@ -26,17 +26,17 @@ db = SQLAlchemy()
 db.init_app(app)
 
 
-@contextmanager
-def session_scope():
-    session = db.session
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+class MapFileRequestSchema(Schema):
+    commit_hash = fields.String(required=True)
+    commit_msg = fields.String(required=True)
+    branch_name = fields.String(required=True)
+    bss_size = fields.Integer(required=True)
+    text_size = fields.Integer(required=True)
+    rodata_size = fields.Integer(required=True)
+    data_size = fields.Integer(required=True)
+    free_flash_size = fields.Integer(required=True)
+    pull_id = fields.Integer(required=True)
+    pull_name = fields.String(required=True)
 
 
 def time_it(func):
@@ -181,19 +181,6 @@ INTERESTING_SECTIONS = [
     "MB_MEM1",
     "MB_MEM2",
 ]
-
-
-class MapFileRequestSchema(Schema):
-    commit_hash = fields.String(required=True)
-    commit_msg = fields.String(required=True)
-    branch_name = fields.String(required=True)
-    bss_size = fields.Integer(required=True)
-    text_size = fields.Integer(required=True)
-    rodata_size = fields.Integer(required=True)
-    data_size = fields.Integer(required=True)
-    free_flash_size = fields.Integer(required=True)
-    pull_id = fields.Integer(required=True)
-    pull_name = fields.String(required=True)
 
 
 class HashDataHelper:
@@ -570,11 +557,11 @@ def api_v0_branches():
     )
 
 
-@app.route("/api/v0/map-file/analyze", methods=["POST"])
+@app.route("/api/v0/map-file/analyse", methods=["POST"])
 @cross_origin()
 @validate_auth
-def api_v0_analyze_map_file():
-    """Analyze map file"""
+def api_v0_analyse_map_file():
+    """Analyse map file"""
     try:
         result = MapFileRequestSchema().load(request.form)
     except ValidationError as err:
@@ -586,34 +573,35 @@ def api_v0_analyze_map_file():
     parsed_sections = parse_sections(map_file)
     parsed_sections = save_parsed_data(parsed_sections)
 
-    with session_scope() as session:
-        header_new = Header(
-            datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            commit=result["commit_hash"],
-            commit_msg=result["commit_msg"],
-            branch_name=result["branch_name"],
-            bss_size=result["bss_size"],
-            text_size=result["text_size"],
-            rodata_size=result["rodata_size"],
-            data_size=result["data_size"],
-            free_flash_size=result["free_flash_size"],
-            pullrequest_id=result["pull_id"],
-            pullrequest_name=result["pull_name"],
-        )
-        session.add(header_new)
-        session.flush()
+    header_new = Header(
+        datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        commit=result["commit_hash"],
+        commit_msg=result["commit_msg"],
+        branch_name=result["branch_name"],
+        bss_size=result["bss_size"],
+        text_size=result["text_size"],
+        rodata_size=result["rodata_size"],
+        data_size=result["data_size"],
+        free_flash_size=result["free_flash_size"],
+        pullrequest_id=result["pull_id"],
+        pullrequest_name=result["pull_name"],
+    )
+    db.session.add(header_new)
+    db.session.flush()
 
-        for parsed_section in parsed_sections:
-            data = Data(
-                header_id=header_new.id,
-                section=parsed_section["section_name"],
-                address=parsed_section["address"],
-                size=parsed_section["size"],
-                name=parsed_section["demangled_name"],
-                lib=parsed_section["module_name"],
-                obj_name=parsed_section["file_name"],
-            )
-            session.add(data)
+    for parsed_section in parsed_sections:
+        data = Data(
+            header_id=header_new.id,
+            section=parsed_section["section_name"],
+            address=parsed_section["address"],
+            size=parsed_section["size"],
+            name=parsed_section["demangled_name"],
+            lib=parsed_section["module_name"],
+            obj_name=parsed_section["file_name"],
+        )
+        db.session.add(data)
+
+    db.session.commit()
 
     return jsonify({"status": "ok"})
 

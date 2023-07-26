@@ -9,7 +9,7 @@ def validate_auth(f):
     def decorated(*args, **kwargs):
         token = None
         if "Authorization" in request.headers:
-            token = request.headers["Authorization"].split(" ")[1]
+            token = request.headers["Authorization"].split(" ")[-1]
 
         if not token or os.environ.get("APP_AUTH_TOKEN") != token:
             return {
