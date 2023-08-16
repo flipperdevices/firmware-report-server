@@ -1,4 +1,4 @@
-FROM python:3.10-alpine
+FROM python:3.11-alpine
 
 MAINTAINER devops@flipperdevices.com
 
@@ -7,7 +7,13 @@ COPY Pipfile.lock /Pipfile.lock
 
 COPY app /app
 
-RUN apk add curl gcc musl-dev mariadb-connector-c-dev && pip install pipenv && pipenv install
+RUN apk update \
+    && apk add --virtual build-deps gcc python3-dev musl-dev \
+    && apk add --no-cache mariadb-dev
+
+
+RUN pip install pipenv
+RUN pipenv install
 
 ENV WORKERS=4
 ENV PORT=6754

@@ -8,6 +8,10 @@ shell:
 install:
 	pipenv install
 
+.PHONY: tests
+tests: install
+	pipenv run pytest tests -s
+
 .PHONY: gunicorn
 gunicorn: install
 	pipenv run gunicorn --reload --log-level=INFO -e FLASK_DEBUG=True -w 2 -b 0.0.0.0:6754 app:app

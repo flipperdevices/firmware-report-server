@@ -1,21 +1,42 @@
 import os
 import re
 import time
+from contextlib import contextmanager
+from datetime import datetime
 from functools import wraps
 from typing import Dict, List, TypedDict
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 from flask_sqlalchemy import SQLAlchemy
+from marshmallow import Schema, ValidationError, fields
 from sqlalchemy.sql import desc, func
 
+from app.authentication import validate_auth
+from app.services.map_parser import parse_sections, save_parsed_data
+
+
 app = Flask(__name__)
+
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URI")
 
 db = SQLAlchemy()
 db.init_app(app)
+
+
+class MapFileRequestSchema(Schema):
+    commit_hash = fields.String(required=True)
+    commit_msg = fields.String(required=True)
+    branch_name = fields.String(required=True)
+    bss_size = fields.Integer(required=True)
+    text_size = fields.Integer(required=True)
+    rodata_size = fields.Integer(required=True)
+    data_size = fields.Integer(required=True)
+    free_flash_size = fields.Integer(required=True)
+    pull_id = fields.Integer(required=True)
+    pull_name = fields.String(required=True)
 
 
 def time_it(func):
@@ -120,14 +141,14 @@ class Header(db.Model):  # type: ignore
     datetime = db.Column(db.DateTime, nullable=False, server_default=func.now())
     commit = db.Column(db.String(40), nullable=False)
     commit_msg = db.Column(db.Text, nullable=False)
-    branch_name = db.Column(db.String, unique=False, nullable=False)
+    branch_name = db.Column(db.String(32), unique=False, nullable=False)
     bss_size = db.Column(db.Integer, nullable=False)
     text_size = db.Column(db.Integer, nullable=False)
     rodata_size = db.Column(db.Integer, nullable=False)
     data_size = db.Column(db.Integer, nullable=False)
     free_flash_size = db.Column(db.Integer, nullable=False)
     pullrequest_id = db.Column(db.Integer, nullable=True)
-    pullrequest_name = db.Column(db.String, unique=False, nullable=True)
+    pullrequest_name = db.Column(db.String(128), unique=False, nullable=True)
 
     @property
     def serialize(self):
@@ -194,7 +215,7 @@ class HashData:
 
             helper = HashDataHelper()
             hash_key = helper.hash_key(d)
-            if not hash_key in self.hash:
+            if hash_key not in self.hash:
                 self.hash[hash_key] = helper.hash_data(lib, obj_name, name, section)
             self.hash[hash_key]["size"] += size
 
@@ -210,13 +231,13 @@ class DiffHashData:
 
         # equalize the hashe1 with hash2
         for key in hashed_data2:
-            if not key in hashed_data1:
+            if key not in hashed_data1:
                 hashed_data1[key] = hashed_data2[key].copy()
                 hashed_data1[key]["size"] = 0
 
         # equalize the hashe2 with hash1
         for key in hashed_data1:
-            if not key in hashed_data2:
+            if key not in hashed_data2:
                 hashed_data2[key] = hashed_data1[key].copy()
                 hashed_data2[key]["size"] = 0
 
@@ -271,13 +292,13 @@ class Sections:
         for entry in data:
             section = entry["section"]
 
-            if not section in self.sections:
+            if section not in self.sections:
                 self.sections[section] = {"size": 0, "objects": {}}
             current_section = self.sections[section]
             current_section["size"] += entry["size"]
 
             obj_name = flipper_path(entry["lib"], entry["obj_name"])
-            if not obj_name in current_section["objects"]:
+            if obj_name not in current_section["objects"]:
                 current_section["objects"][obj_name] = {
                     "size": 0,
                     "symbols": {},
@@ -286,7 +307,7 @@ class Sections:
             current_object["size"] += entry["size"]
 
             symbol_name = entry["name"]
-            if not symbol_name in current_object["symbols"]:
+            if symbol_name not in current_object["symbols"]:
                 current_object["symbols"][symbol_name] = 0
 
             current_object["symbols"][symbol_name] += entry["size"]
@@ -307,12 +328,11 @@ class Files:
             path_parts = path.split("/")
             current = self.files
             for part in path_parts:
-
-                if not part in current["next"]:
+                if part not in current["next"]:
                     current["next"][part] = {"sections": {}, "next": {}}
                 current = current["next"][part]
 
-                if not section in current["sections"]:
+                if section not in current["sections"]:
                     current["sections"][section] = {
                         "size": 0,
                         "names": {},
@@ -320,7 +340,7 @@ class Files:
                 current_section = current["sections"][section]
                 current_section["size"] += size
 
-                if not name in current_section["names"]:
+                if name not in current_section["names"]:
                     current_section["names"][name] = 0
                 current_section["names"][name] += size
 
@@ -512,7 +532,7 @@ def api_v0_branches():
             release_candidate_branches.append({"branch_name": name, "count": count})
         elif "/" in name:
             username, _ = name.split("/", 1)
-            if not username in pull_request_user_branches:
+            if username not in pull_request_user_branches:
                 pull_request_user_branches[username] = {"branches": [], "count": 0}
 
             pull_request_user_branches[username]["branches"].append(
@@ -535,6 +555,55 @@ def api_v0_branches():
             "pull_request_user_branches": pull_request_user_branches,
         }
     )
+
+
+@app.route("/api/v0/map-file/analyse", methods=["POST"])
+@cross_origin()
+@validate_auth
+def api_v0_analyse_map_file():
+    """Analyse map file"""
+    try:
+        result = MapFileRequestSchema().load(request.form)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+
+    if (map_file := request.files.get("map_file")) is None:
+        return {"map_file": ["Missing data for required field."]}, 400
+
+    parsed_sections = parse_sections(map_file)
+    parsed_sections = save_parsed_data(parsed_sections)
+
+    header_new = Header(
+        datetime=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        commit=result["commit_hash"],
+        commit_msg=result["commit_msg"],
+        branch_name=result["branch_name"],
+        bss_size=result["bss_size"],
+        text_size=result["text_size"],
+        rodata_size=result["rodata_size"],
+        data_size=result["data_size"],
+        free_flash_size=result["free_flash_size"],
+        pullrequest_id=result["pull_id"],
+        pullrequest_name=result["pull_name"],
+    )
+    db.session.add(header_new)
+    db.session.flush()
+
+    for parsed_section in parsed_sections:
+        data = Data(
+            header_id=header_new.id,
+            section=parsed_section["section_name"],
+            address=parsed_section["address"],
+            size=parsed_section["size"],
+            name=parsed_section["demangled_name"],
+            lib=parsed_section["module_name"],
+            obj_name=parsed_section["file_name"],
+        )
+        db.session.add(data)
+
+    db.session.commit()
+
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/v0/ping", methods=["GET"])
