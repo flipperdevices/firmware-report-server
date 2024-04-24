@@ -35,8 +35,8 @@ class MapFileRequestSchema(Schema):
     rodata_size = fields.Integer(required=True)
     data_size = fields.Integer(required=True)
     free_flash_size = fields.Integer(required=True)
-    pull_id = fields.Integer(required=True)
-    pull_name = fields.String(required=True)
+    pull_id = fields.Integer(required=False)
+    pull_name = fields.String(required=False)
 
 
 def time_it(func):
