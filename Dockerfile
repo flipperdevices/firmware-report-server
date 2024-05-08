@@ -1,20 +1,18 @@
 FROM python:3.11.9-bookworm
 
-MAINTAINER devops@flipperdevices.com
-
 RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y libmariadb3 libmariadb-dev build-essential
 
-COPY pyproject.toml /pyproject.toml
-COPY poetry.lock /poetry.lock
-
-COPY app /app
-
+ADD pyproject.toml /app/pyproject.toml
+ADD poetry.lock /app/poetry.lock
+WORKDIR /app
 RUN python3 -m pip install jsonschema==4.17.3 poetry && poetry config virtualenvs.create false && poetry install
 
-ENV WORKERS=4
-ENV PORT=6754
-ENV FLASK_DEBUG=0
+ADD app /app/app
 
+MAINTAINER devops@flipperdevices.com
+ENV WORKERS=1
+ENV PORT=80
+ENV FLASK_DEBUG=0
 CMD poetry run gunicorn -w ${WORKERS} -b 0.0.0.0:${PORT} app:app
 
 EXPOSE ${PORT}/tcp

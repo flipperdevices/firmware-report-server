@@ -15,12 +15,14 @@ from sqlalchemy.sql import desc, func
 from app.authentication import validate_auth
 from app.services.map_parser import parse_sections, save_parsed_data
 
+from app.settings import settings
+
 
 app = Flask(__name__)
 
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URI")
+app.config["SQLALCHEMY_DATABASE_URI"] = settings.database_uri
 
 db = SQLAlchemy()
 db.init_app(app)
@@ -167,6 +169,10 @@ class Header(db.Model):  # type: ignore
             "pullrequest_id": self.pullrequest_id,
             "pullrequest_name": self.pullrequest_name,
         }
+
+
+with app.app_context():
+    db.create_all()
 
 
 INTERESTING_SECTIONS = [

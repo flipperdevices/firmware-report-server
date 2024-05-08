@@ -19,6 +19,7 @@ pyngrok = "6.0.0"
 mariadb = "^1.1.10"
 cxxfilt = "^0.3.0"
 werkzeug = "^3.0.3"
+pydantic = "2.7.1"
 
 
 [build-system]

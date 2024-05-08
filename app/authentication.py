@@ -2,6 +2,7 @@ import os
 from functools import wraps
 
 from flask import request
+from .settings import settings
 
 
 def validate_auth(f):
@@ -11,7 +12,7 @@ def validate_auth(f):
         if "Authorization" in request.headers:
             token = request.headers["Authorization"].split(" ")[-1]
 
-        if not token or os.environ.get("APP_AUTH_TOKEN") != token:
+        if not token or settings.auth_token != token:
             return {
                 "status": "error",
                 "details": "Invalid Authentication token!",
