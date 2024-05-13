@@ -22,8 +22,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: 'Set image tag'
+        id: tag
         run: |
-          IMAGE_TAG=latest
+          IMAGE_TAG=0.0.0
           if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
             REF=${{ github.ref }};
             TAG_FULL=${REF#refs/*/};
