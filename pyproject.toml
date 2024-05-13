@@ -20,6 +20,7 @@ mariadb = "^1.1.10"
 cxxfilt = "^0.3.0"
 werkzeug = "^3.0.3"
 pydantic = "2.7.1"
+mysqlclient = "2.2.4"
 
 
 [build-system]
