@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "firmware-report-server"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+packages = [{include = "firmware_report_server"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+flask = "2.3.2"
+flask-sqlalchemy = "3.0.5"
+flask-cors = "4.0.0"
+gunicorn = "21.2.0"
+marshmallow = "3.20.1"
+pytest = "7.4.0"
+pytest-env = "0.8.2"
+pyngrok = "6.0.0"
+mariadb = "^1.1.10"
+cxxfilt = "^0.3.0"
+werkzeug = "^3.0.3"
+pydantic = "2.7.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

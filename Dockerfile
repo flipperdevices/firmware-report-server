@@ -1,25 +1,19 @@
-FROM python:3.11-alpine
+FROM python:3.11.9-bookworm
+
+RUN DEBIAN_FRONTEND=noninteractive apt update && apt install -y libmariadb3 libmariadb-dev build-essential
+
+ADD pyproject.toml /app/pyproject.toml
+ADD poetry.lock /app/poetry.lock
+WORKDIR /app
+RUN python3 -m pip install jsonschema==4.17.3 poetry && poetry config virtualenvs.create false && poetry install
+
+ADD app /app/app
 
 MAINTAINER devops@flipperdevices.com
-
-COPY Pipfile /Pipfile
-COPY Pipfile.lock /Pipfile.lock
-
-COPY app /app
-
-RUN apk update \
-    && apk add --virtual build-deps gcc python3-dev musl-dev \
-    && apk add --no-cache mariadb-dev
-
-
-RUN pip install pipenv
-RUN pipenv install
-
-ENV WORKERS=4
-ENV PORT=6754
+ENV WORKERS=1
+ENV PORT=80
 ENV FLASK_DEBUG=0
-
-CMD pipenv run gunicorn -w ${WORKERS} -b 0.0.0.0:${PORT} app:app
+CMD poetry run gunicorn -w ${WORKERS} -b 0.0.0.0:${PORT} app:app
 
 EXPOSE ${PORT}/tcp
 

@@ -15,12 +15,14 @@ from sqlalchemy.sql import desc, func
 from app.authentication import validate_auth
 from app.services.map_parser import parse_sections, save_parsed_data
 
+from app.settings import settings
+
 
 app = Flask(__name__)
 
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URI")
+app.config["SQLALCHEMY_DATABASE_URI"] = settings.database_uri
 
 db = SQLAlchemy()
 db.init_app(app)
@@ -35,8 +37,8 @@ class MapFileRequestSchema(Schema):
     rodata_size = fields.Integer(required=True)
     data_size = fields.Integer(required=True)
     free_flash_size = fields.Integer(required=True)
-    pull_id = fields.Integer(required=True)
-    pull_name = fields.String(required=True)
+    pull_id = fields.Integer(required=False)
+    pull_name = fields.String(required=False)
 
 
 def time_it(func):
@@ -167,6 +169,10 @@ class Header(db.Model):  # type: ignore
             "pullrequest_id": self.pullrequest_id,
             "pullrequest_name": self.pullrequest_name,
         }
+
+
+with app.app_context():
+    db.create_all()
 
 
 INTERESTING_SECTIONS = [
@@ -583,8 +589,8 @@ def api_v0_analyse_map_file():
         rodata_size=result["rodata_size"],
         data_size=result["data_size"],
         free_flash_size=result["free_flash_size"],
-        pullrequest_id=result["pull_id"],
-        pullrequest_name=result["pull_name"],
+        pullrequest_id=result.get("pull_id"),
+        pullrequest_name=result.get("pull_name"),
     )
     db.session.add(header_new)
     db.session.flush()

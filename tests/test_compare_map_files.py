@@ -10,7 +10,6 @@ from tests.source import map_mariadb_insert, map_parser
 
 
 class TestComparingFiles:
-
     def test_analyse_map_file(
         self, cli: FlaskClient, prepare_input_map_file_data: dict
     ):
