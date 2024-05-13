@@ -589,8 +589,8 @@ def api_v0_analyse_map_file():
         rodata_size=result["rodata_size"],
         data_size=result["data_size"],
         free_flash_size=result["free_flash_size"],
-        pullrequest_id=result["pull_id"],
-        pullrequest_name=result["pull_name"],
+        pullrequest_id=result.get("pull_id"),
+        pullrequest_name=result.get("pull_name"),
     )
     db.session.add(header_new)
     db.session.flush()
